@@ -1,0 +1,20 @@
+SELECT      
+su.NIS_RAD AS "ID Servicio",
+ pr.NOM_PROV AS Departamento, 
+ de.NOM_DEPTO AS Municipio, 
+ mu.NOM_MUNIC AS Localidad, 
+fpl.COD_UNICOM AS "ID Centro Lectura"
+FROM                     
+                         SGCPRO.SUMCON su                                   LEFT OUTER JOIN
+                         SGCPRO.APMEDIDA_AP ap ON ap.NIS_RAD = su.NIS_RAD   LEFT OUTER JOIN
+                         SGCPRO.CLIENTES cl ON cl.COD_CLI = su.COD_CLI      LEFT OUTER JOIN
+                         SGCPRO.FINCAS_PER_LECT fpl ON fpl.NIF = su.NIF     LEFT OUTER JOIN
+                         SGCPRO.FINCAS fi ON fi.NIF = fpl.NIF               LEFT OUTER JOIN
+                         SGCPRO.CALLEJERO ca ON ca.COD_CALLE = fi.COD_CALLE LEFT OUTER JOIN
+                         SGCPRO.PROVINCIAS pr ON pr.COD_PROV = ca.COD_PROV  LEFT OUTER JOIN
+                         SGCPRO.DEPTOS de ON de.COD_DEPTO = ca.COD_DEPTO    LEFT OUTER JOIN
+                         SGCPRO.MUNICIPIOS mu ON mu.COD_MUNIC = ca.COD_MUNIC LEFT OUTER JOIN
+                         SGCPRO.TIPOS t2 ON t2.TIPO = ap.TIP_TENSION         LEFT OUTER JOIN
+                         SGCPRO.CODIGOS co ON co.COD = ap.CO_MARCA           LEFT OUTER JOIN
+                         SGCPRO.MTARIFAS mt ON mt.COD_TAR = su.COD_TAR
+
