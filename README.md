@@ -1,1 +1,1 @@
-# MINE-4101_Proyecto_Entrega_1
+# MINE-4101 Proyecto: Entrega 1
