@@ -1,1 +1,1 @@
-# MINE-4101 Proyecto: Entrega 1
+# MINE-4101 Ciencia de datos. Proyecto: Entrega 1
