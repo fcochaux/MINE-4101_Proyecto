@@ -1,0 +1,403 @@
+select  oo.ORDER_ID             no_orden
+    ,  case when PAO.EXTERNAL_ID is not null then PAO.EXTERNAL_ID else (
+        select  num_os from apmedida_ap@DBL_INTERFAZ_SGC where num_apa=SUBSTR(VALUE2,(INSTR(OOA.VALUE2,'S>')+2),INSTR(OOA.VALUE2,'>>')-INSTR(OOA.VALUE2,'S>')-2)
+    ) end          no_orden_sgc
+  /*  ,   oo.prior_order_id       no_orden_previa
+    ,   ore.related_order_id    no_orden_relacionada*/
+    ,   GP.DESCRIPTION          prioridad
+    ,   trunc(oo.CREATED_DATE)  f_creacion
+    ,   to_char(created_date,'HH24:MI:SS') h_creacion    
+    ,   oo.EXEC_INITIAL_DATE    f_ini_ejecucion
+    ,   oo.EXECUTION_FINAL_DATE f_fin_ejecucion
+    ,   oo.EXEC_ESTIMATE_DATE   f_ejec_estimada
+    ,   oo.ARRANGED_HOUR        h_agendada
+    ,   trunc(oo.LEGALIZATION_DATE)    f_legalizacion
+    ,   to_char(oo.LEGALIZATION_DATE,'HH24:MI:SS')  h_legalizacion    
+    ,   oo.REPROGRAM_LAST_DATE  f_ultima_reprogramacion
+    ,   oo.ASSIGNED_DATE        f_asignacion
+,   case when oo.ORDER_STATUS_ID=12 then oo.STAT_CHG_DATE else null end f_anulacion
+    ,   decode(oo.assigned_with,'S','Horario','O','Cant. Ordenes','R','Ruta','N','Demanda','n/a') tipo_asignacion
+    ,   oo.MAX_DATE_TO_LEGALIZE f_max_legalizacion
+    ,   oo.PRINTING_TIME_NUMBER cantidad_impresiones
+    ,   OOU.OPERATING_UNIT_ID   id_unidad_operativa
+    ,   OOU.NAME                unidad_operativa
+    ,   OOS.DESCRIPTION         estado
+    ,   OTT.DESCRIPTION         tipo_trabajo
+    ,   git.description         actividad
+    ,   case when ooa.origin_activity_id is null then 'Principal' else 'Secundaria' end tipo_actividad
+   ,  case when  substr(oo.operating_sector_id,1,4) in (2401,1801) then to_char(su.cod_unicom)   else   to_char(oo.operating_sector_id)  end  id_sector_operativo
+    ,   GC.DESCRIPTION          causal
+   
+    ,   oo.PREVIOUS_WORK        trabajos_previos
+,  CASE 
+    WHEN  GS.IDENTIFICATION = '100000' and ( ott.TASK_TYPE_ID = 10082 or   ott.TASK_TYPE_ID = 10033)  and   (git.items_id = 7400128  or git.items_id=7400129)  
+    THEN      (select  nis_rad from apmedida_ap@DBL_INTERFAZ_SGC where num_apa=SUBSTR(VALUE2,(INSTR(OOA.VALUE2,'S>')+2),INSTR(OOA.VALUE2,'>>')-INSTR(OOA.VALUE2,'S>')-2))
+        
+   
+        ELSE  case when REGEXP_LIKE ( GS.IDENTIFICATION, '^[0-9]+$' ) then to_number( substr(GS.IDENTIFICATION,0,8)) else su.NIS_RAD end
+        
+        END  nis
+    ,   AA.ADDRESS              direccion
+    ,   AA.GEOGRAP_LOCATION_ID  id_localidad
+    ,   ggl.description         localidad
+    ,   ggl2.description        municipio
+    ,   ggl3.description        departamento
+    ,   decode (substr(oo.OPERATING_SECTOR_ID,1,1),'1','DEORSA','2','DEOCSA','n/a')empresa
+   ,    decode(case when  substr(oo.operating_sector_id,1,4) in (2401,1801) then to_char(su.cod_unicom)   else   substr(oo.operating_sector_id,1,4)  end 
+                ,2101,'Occidente' 
+                ,2102,'Occidente' 
+                ,2103,'Occidente' 
+                ,2104,'Occidente' 
+                ,2107,'Occidente'
+                ,2108,'Occidente'
+                ,2201,'Centro'
+                ,2202,'Centro'
+                ,2203,'Centro'
+                ,2204,'Centro'
+                ,2205,'Centro'
+                 ,1601,'Norte'
+                ,1602,'Norte'
+                ,1603,'Norte'
+                ,1604,'Norte'
+                ,1801, 'Tecn de medida'
+                ,2401, 'Tecn de medida'
+                ,2501,'Occidente'
+                ,2502,'Occidente'
+                ,2503,'Occidente'
+                ,2504,'Occidente'
+                ,2505,'Occidente'
+            
+                ,1104,'Oriente'
+                ,1105,'Oriente'
+                ,1107,'Oriente'
+                ,1103,'Oriente'
+                ,1106,'Oriente'
+                ,1205,'Oriente'
+                ,1206,'Oriente'
+              
+                ,1301,'Oriente'
+                ,1302,'Oriente'
+                ,1305,'Oriente'
+                ,1315,'Oriente'
+                ,2301,'SurOccidente'
+                ,2302,'SurOccidente'
+                ,2303,'SurOccidente'
+                ,2304,'SurOccidente'
+                ,2305,'SurOccidente'
+                ,2306,'SurOccidente'
+                ,2307,'SurOccidente'
+                ,1202,'Centro'
+                ,1203,'Centro'
+                ,1204,'Centro'
+                ,'n/a')        zona_gestion
+     ,   decode(case when  substr(oo.operating_sector_id,1,4) in (2401,1801) then to_char(su.cod_unicom)   else   substr(oo.operating_sector_id,1,4) end 
+                ,2101,'CentroOccidente I'
+                ,2102,'CentroOccidente I'
+                ,2103,'CentroOccidente I'
+                ,2104,'CentroOccidente I'
+                ,2107,'CentroOccidente I'
+                ,2108,'CentroOccidente I'
+                ,2201,'CentroOccidente II'
+                ,2202,'CentroOccidente II'
+                ,2203,'CentroOccidente II'
+                ,2204,'CentroOccidente II'
+                ,2205,'CentroOccidente II'
+                ,1601,'CentroOriente'
+                ,1602,'CentroOriente'
+                ,1603,'CentroOriente'
+                ,1604,'CentroOriente'
+                ,1801, 'Tecn de medida'
+                ,2401, 'Tecn de medida'
+                ,2501,'Nor Occidente'
+                ,2502,'Nor Occidente'
+                ,2503,'Nor Occidente'
+                ,2504,'Nor Occidente'
+                ,2505,'Nor Occidente'
+                ,1104,'NorOriente I'
+                ,1105,'NorOriente I'
+                ,1107,'NorOriente I'
+                ,1103,'NorOriente II'
+                ,1106,'NorOriente II'
+                ,1205,'NorOriente II'
+                ,1206,'NorOriente II'
+                ,1301,'Petén'
+                ,1302,'Petén'
+                ,1305,'Petén'
+                ,1315,'Petén'
+                ,2301,'SurOccidente I'
+                ,2302,'SurOccidente I'
+                ,2303,'SurOccidente I'
+                ,2304,'SurOccidente I'
+                ,2305,'SurOccidente II'
+                ,2306,'SurOccidente II'
+                ,2307,'SurOccidente II'
+                ,1202,'SurOriente'
+                ,1203,'SurOriente'
+                ,1204,'SurOriente'
+                ,'n/a'
+        )                       Region
+    ,   decode(case when  substr(oo.operating_sector_id,1,4) in (2401,1801) then to_char(su.cod_unicom)   else  substr(oo.operating_sector_id,1,4)  end 
+                ,2101,'COCI'
+                ,2102,'COCI'
+                ,2103,'COCI'
+                ,2104,'COCI'
+                ,2107,'COCI'
+                ,2108,'COCI'
+                ,2201,'COCII'
+                ,2202,'COCII'
+                ,2203,'COCII'
+                ,2204,'COCII'
+                ,2205,'COCII'
+                ,1601,'COR'
+                ,1602,'COR'
+                ,1603,'COR'
+                ,1604,'COR'
+                ,1801, 'TECNMED'
+                ,2401, 'TECNMED'
+                ,2501,'NOC'
+                ,2502,'NOC'
+                ,2503,'NOC'
+                ,2504,'NOC'
+                ,2505,'NOC'
+                ,1104,'NORI'
+                ,1105,'NORI'
+                ,1107,'NORI'
+                ,1103,'NORII'
+                ,1106,'NORII'
+                ,1205,'NORII'
+                ,1206,'NORII'
+                ,1301,'PET'
+                ,1302,'PET'
+                ,1305,'PET'
+                ,1315,'PET'
+                ,2301,'SOCI'
+                ,2302,'SOCI'
+                ,2303,'SOCI'
+                ,2304,'SOCI'
+                ,2305,'SOCII'
+                ,2306,'SOCII'
+                ,2307,'SOCII'
+                ,1202,'SOR'
+                ,1203,'SOR'
+                ,1204,'SOR'
+                ,'n/a'
+        )                       ID_Region
+    ,  case when  substr(oo.operating_sector_id,1,4) in (2401,1801) then to_char(su.cod_unicom)   else   substr(oo.operating_sector_id,1,4)  end  UNICOM_RUTA
+  
+    ,   DECODE(case when  substr(oo.operating_sector_id,1,4) in (2401,1801) then to_char(su.cod_unicom)   else  substr(oo.operating_sector_id,1,4) end 
+                ,2101,'QUETZALTENANGO'
+                ,2102,'SAN MARCOS'
+                ,2103,'SAN CRISTOBAL'
+                ,2104,'SAN CRISTOBAL'
+                ,2107,'OCC TEJUTLA'
+                ,2108,'OCC TACANÁ'
+                ,2201,'CHIMALTENANGO'
+                ,2202,'SOLOLA'
+                ,2203,'OCC PANAJACHEL'
+                ,2204,'STA CRUZ DEL QUICHE'
+                ,2205,'OCC TECPAN'
+                ,1601,'COBAN'
+                ,1602,'SALAMA'
+                ,1603,'OCC FRAY BARTOLOME'
+                ,1604,'OCC LA TINTA'
+                ,1801, 'Tecn de medida'
+                ,2401, 'Tecn de medida'
+                ,2501,'HUEHUETENANGO'
+                ,2502,'LA DEMOCRACIA'
+                ,2503,'SACAPULAS'
+                ,2504,'OCC BARILLAS'
+                ,2505,'OCC NENTON'
+                ,1104,'TECULUTAN'
+                ,1105,'MORALES'
+                ,1107,'CHIQUIMULA'
+                ,1103,'SANARATE'
+                ,1106,'JALAPA'
+                ,1205,'JUTIAPA'
+                ,1206,'ASUNCION MITA'
+                ,1301,'PETEN'
+                ,1302,'POPTUN'
+                ,1305,'OCC SAYAXCHE'
+                ,1315,'LA LIBERTAD PETEN'
+                ,2301,'MAZATENANGO'
+                ,2302,'SAN ANTONIO SUCHIT.'
+                ,2303,'TIQUISATE'
+                ,2304,'RETALHULEU'
+                ,2305,'COATEPEQUE'
+                ,2306,'TECUN UMAN'
+                ,2307,'MALACATAN'
+                ,1202,'CUILAPA'
+                ,1203,'SANTA ROSA'
+                ,1204,'CHIQUIMULILLA'
+                ,'N/A')         centro_lectura 
+    ,   su.cod_unicom unicom
+,   DECODE(case when  substr(oo.operating_sector_id,1,4) in (2401,1801) then to_char(su.cod_unicom)   else   substr(oo.operating_sector_id,1,4)  end 
+            ,2101,'Quetzaltenango'
+                ,2102,'San Marcos'
+                ,2103,'San Cristóbal'
+                ,2104,'San Cristóbal'
+                ,2107,'San Marcos'
+                ,2108,'San Marcos'
+                ,2201,'Chimaltenango'
+                ,2202,'Sololá'
+                ,2203,'Sololá'
+                ,2204,'Quiché'
+                ,2205,'Tecpán'
+                ,1601,'Cobán'
+                ,1602,'Salamá'
+                ,1603,'Fray Bartolomé'
+                ,1604,'Cobán'
+                ,1801, 'Tecn de medida'
+                ,2401, 'Tecn de medida'
+                ,2501,'Huehuetenango'
+                ,2502,'La Democracia'
+                ,2503,'Sacapulas'
+                ,2504,'Huehuetenango'
+                ,2505,'Huehuetenango'
+                ,1104,'Teculután'
+                ,1105,'Morales'
+                ,1107,'Chiquimula'
+                ,1103,'Sanarate'
+                ,1106,'Jalapa'
+                ,1205,'Jutiapa'
+                ,1206,'Asunción Mita'
+                ,1301,'Santa Elena'
+                ,1302,'Poptún'
+                ,1305,'Santa Elena'
+                ,1315,'Santa Elena'
+                ,2301,'Mazatenango'
+                ,2302,'San Antonio'
+                ,2303,'Tiquisate'
+                ,2304,'Retalhuleu'
+                ,2305,'Coatepeque'
+                ,2306,'Tecún Uman'
+                ,2307,'Malacatán'
+                ,1202,'Cuilapa'
+                ,1203,'Santa Rosa'
+                ,1204,'Chiquimulilla'
+                ,'N/A')  centro_tecnico
+         ,  upper(substr(translate(ooaC.COMMENT_, 'a -', 'a'), 0, 12)) linea_bri     
+        , case when OTT.TASK_TYPE_ID in (10175,10177,10178,10179,10180,10182,10183,10184,10185)  then 'Grandes Clientes'   
+                when OTT.TASK_TYPE_ID = 10214   then  'Verificaciones Comerciales' 
+                when  OTT.TASK_TYPE_ID = 10212   then  'Masivos' 
+                when  OTT.TASK_TYPE_ID = 10033 and git.items_id= 7400129 	then  'Masivos'
+				when  OTT.TASK_TYPE_ID in(15038,15043,15039)  	then  'Masivos'
+                when  OTT.TASK_TYPE_ID in (10079,10213,15007,15017,15051,15052,15045
+)   then  'PIMT'
+                when  OTT.TASK_TYPE_ID in (10033, 10082,10086) and git.items_id= 7400128 	 then  'PIMT'
+                when  (OTT.TASK_TYPE_ID =  10046 and  git.items_id= 7400175) or (OTT.TASK_TYPE_ID  in ( 10088,15008))    then  'Mantenimiento AP PIMT'
+                when  OTT.TASK_TYPE_ID = 10046 and  git.items_id= 1000003662 then  'Mantenimiento AP Masivos'
+                when  OTT.TASK_TYPE_ID = 10046 and git.items_id =1000003614  then  'Mantenimiento AP Verificaciones Comerciales'
+                end iniciativa
+,   OTT.TASK_TYPE_ID id_tipo_trabajo
+,git.items_id id_actividad
+,OOA.VALUE1
+,case when OOA.VALUE1 LIKE ('COORDINADAS_GPS>%>>%') THEN  REPLACE(SUBSTR(VALUE1,(INSTR(OOA.VALUE1,'GPS>')+4),INSTR(OOA.VALUE1,',')-INSTR(OOA.VALUE1,'S>')-2),',',' ') ELSE '' END coordenada_x
+,case when OOA.VALUE1 LIKE ('COORDINADAS_GPS>%>>%') THEN SUBSTR(VALUE1,(INSTR(OOA.VALUE1,'>>')-INSTR(OOA.VALUE1,'GPS>')+2),INSTR(OOA.VALUE1,'>>')-instr(ooa.value1,',')-1)  ELSE '' END  coordenada_y
+, con.id_contratista
+,con.nombre_contratista contratista
+, sysdate
+,OOA.VALUE2
+,OOA.VALUE3
+ , SUBSTR(ooaC.COMMENT_ ,0,999)  comentario_bri 
+---------------Peticion Edgar Ovando 28/05/2020-------
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5000495               and oav.order_activity_id = ooa.order_activity_id)           "Estado del Inmueble"
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5000485               and oav.order_activity_id = ooa.order_activity_id)           "Tipo de Suministro"
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5001205               and oav.order_activity_id = ooa.order_activity_id)           "Anomalias encontradas"
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5000496               and oav.order_activity_id = ooa.order_activity_id)           "Perimetro del Inmueble"
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5000512               and oav.order_activity_id = ooa.order_activity_id)           "No. de Medidor Encontrado "
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5000538               and oav.order_activity_id = ooa.order_activity_id)           "Factor de Precisión medidor"
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5000540               and oav.order_activity_id = ooa.order_activity_id)           "Estado de Medidor Encontrado"
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5000091               and oav.order_activity_id = ooa.order_activity_id)           "Marca"
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5000543               and oav.order_activity_id = ooa.order_activity_id)           "Estado de la Acometida"
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5000544               and oav.order_activity_id = ooa.order_activity_id)           "Observaciones de Acometida"
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5000515               and oav.order_activity_id = ooa.order_activity_id)           "Conexionado de Acometida"
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5000539               and oav.order_activity_id = ooa.order_activity_id)           "Prueba de Integración Correcta"
+--,  (select oav.value_ from OR_ACT_ADDI_ATTR_VAL oav where oav.attribute_id =     5000105               and oav.order_activity_id = ooa.order_activity_id)           "KH"
+
+-------Fin Peticion Edgar Ovando 28/05/2020 ------------
+from or_order                oo
+, or_order_status             oos
+, ge_priority                gp
+,  or_operating_unit          oou
+,  ge_causal                  gc
+, or_task_type                ott
+,  ge_subscriber               gs
+, or_order_activity            ooa ----CAMBIOS SOLICITADOS EDGAR 28/05/2020
+,  (select order_id, comment_, register_date, row_number() over (partition by order_id order by register_date asc) numero from  or_order_activity  )   ooac 
+,  ab_address              aa
+,  pe_autonomous_order        pao
+,  ge_items                   git
+, ge_geogra_location          ggl
+, ge_geogra_location          ggl2
+, ge_geogra_location          ggl3
+, (select ORDER_ID, min(RELATED_ORDER_ID) RELATED_ORDER_ID from   or_related_order group by ORDER_ID    )             ore
+,  SGCPRO.ORDENES@DBL_INTERFAZ_SGC     su
+, ge_contratista              con 
+
+where
+    OO.ORDER_STATUS_ID = OOS.ORDER_STATUS_ID
+    
+and OO.PRIORITY = GP.PRIORITY_ID
+and OO.OPERATING_UNIT_ID = OOU.OPERATING_UNIT_ID(+)
+and OO.CAUSAL_ID = GC.CAUSAL_ID(+)
+and OO.TASK_TYPE_ID = OTT.TASK_TYPE_ID
+and OO.SUBSCRIBER_ID = GS.SUBSCRIBER_ID(+)
+and OO.ORDER_ID = OOA.ORDER_ID
+and OO.ORDER_ID = OOAC.ORDER_ID
+--and OO.ORDER_ID = OAI.ORDER_ID(+)-----CAMBIOS SOLICITADOS EDGAR 28/05/2020
+and OOAC.NUMERO = 1
+and OOA.ADDRESS_ID = AA.ADDRESS_ID(+)
+and oo.order_id = PAO.ORDER_ID(+)
+and ooa.activity_id = git.items_id(+)
+and GGL.GEOGRAP_LOCATION_ID = AA.GEOGRAP_LOCATION_ID
+and GGL.GEOG_LOCA_AREA_TYPE = 4
+and ggl.GEO_LOCA_FATHER_ID = ggl2.GEOGRAP_LOCATION_ID
+and ggl2.geog_loca_area_type  = 3
+and ggl2.GEO_LOCA_FATHER_ID = ggl3.GEOGRAP_LOCATION_ID
+and ggl3.geog_loca_area_type  = 2
+and oo.order_id = ore.order_id(+)
+and su.num_os(+) = PAO.EXTERNAL_ID
+and oou.contractor_id= con.id_contratista(+)
+AND 
+
+ ( trunc(OO.LEGALIZATION_DATE)  >= trunc(to_date('01/01/2021','DD/MM/YY')) 
+ or  (trunc(OO.CREATED_DATE)  >= trunc(to_date('01/01/2017','DD/MM/YY')) 
+ and     OOS.DESCRIPTION  <> 'Cerrada'   )
+)
+and  (
+
+OO.TASK_TYPE_ID = 10047 or OO.TASK_TYPE_ID = 10180  
+or  OO.TASK_TYPE_ID = 10016 or   OO.TASK_TYPE_ID = 10018
+or  OO.TASK_TYPE_ID = 10027 or  OO.TASK_TYPE_ID = 10178 
+or OO.TASK_TYPE_ID =10212   or  OO.TASK_TYPE_ID = 10046 
+or  OO.TASK_TYPE_ID = 10033 or  OO.TASK_TYPE_ID = 10182 
+or  OO.TASK_TYPE_ID = 10183 or  OO.TASK_TYPE_ID = 10184 
+or  OO.TASK_TYPE_ID = 10185 or  OO.TASK_TYPE_ID = 10042 
+or  OO.TASK_TYPE_ID = 10213 or  OO.TASK_TYPE_ID = 10177 
+or  OO.TASK_TYPE_ID = 10152 or  OO.TASK_TYPE_ID = 10028 
+or  OO.TASK_TYPE_ID = 10029 or  OO.TASK_TYPE_ID = 10214 
+or  OO.TASK_TYPE_ID = 10179 or  OO.TASK_TYPE_ID = 10079 
+or  OO.TASK_TYPE_ID = 10082 or  OO.TASK_TYPE_ID =15007  
+or  OO.TASK_TYPE_ID = 15008 or  OO.TASK_TYPE_ID =10086  
+or  OO.TASK_TYPE_ID =10088  or  OO.TASK_TYPE_ID =10089  
+or  OO.TASK_TYPE_ID = 15009 or  OO.TASK_TYPE_ID =10187  
+or  OO.TASK_TYPE_ID =10175  or  OO.TASK_TYPE_ID =15017  
+or  OO.TASK_TYPE_ID =15021  or  OO.TASK_TYPE_ID =15014  
+or  OO.TASK_TYPE_ID = 10154 or  OO.TASK_TYPE_ID = 10048  
+or OO.TASK_TYPE_ID= 15036 or   OO.TASK_TYPE_ID =10030 
+or   OO.TASK_TYPE_ID =10053 or   OO.TASK_TYPE_ID =10051  
+or  OO.TASK_TYPE_ID = 10080 or   OO.TASK_TYPE_ID =10049 
+or   OO.TASK_TYPE_ID =10155 or  OO.TASK_TYPE_ID= 10069 
+or  OO.TASK_TYPE_ID= 10031  or  OO.TASK_TYPE_ID= 10032 
+or  OO.TASK_TYPE_ID= 15016  or OO.TASK_TYPE_ID= 10034 
+or  OO.TASK_TYPE_ID= 10050  or OO.TASK_TYPE_ID= 10052 
+or OO.TASK_TYPE_ID= 10054   or OO.TASK_TYPE_ID= 15022
+or OO.TASK_TYPE_ID= 15018   or OO.TASK_TYPE_ID= 10191  
+or OO.TASK_TYPE_ID= 10193 or OO.TASK_TYPE_ID= 10192
+or OO.TASK_TYPE_ID= 15012 or OO.TASK_TYPE_ID= 15017
+or OO.TASK_TYPE_ID= 15051 or OO.TASK_TYPE_ID= 15038
+or OO.TASK_TYPE_ID= 15052 or OO.TASK_TYPE_ID= 15043
+or OO.TASK_TYPE_ID= 15055 or OO.TASK_TYPE_ID= 15039
+or OO.TASK_TYPE_ID= 15045 or OO.TASK_TYPE_ID= 15072
+ 
+)
